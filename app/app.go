@@ -14,6 +14,13 @@ type DBEntry struct {
 	Average   float64
 }
 
+type APIEntry struct {
+	Handler   string
+	TotalTime float64
+	Count     float64
+	Average   float64
+}
+
 type App struct {
 	client *prometheus.Client
 }
@@ -58,6 +65,48 @@ func (a *App) GetDBMetrics() (map[string]*DBEntry, error) {
 	}
 	for _, r := range averageMetrics.Data.Result {
 		entry := data[r.Metric["method"]]
+		average, err := strconv.ParseFloat(r.Value[1].(string), 64)
+		if err != nil {
+			return nil, err
+		}
+		entry.Average = average
+	}
+	return data, nil
+}
+
+func (a *App) GetAPIMetrics() (map[string]*APIEntry, error) {
+	timeRange := "24h"
+	data := map[string]*APIEntry{}
+	totalTimeMetrics, err := a.client.Query(fmt.Sprintf("sum(increase(mattermost_api_time_sum[%s]) and increase(mattermost_api_time_count[%s]) > 0) by (handler)", timeRange, timeRange))
+	if err != nil {
+		return nil, err
+	}
+	for _, r := range totalTimeMetrics.Data.Result {
+		calls, err := strconv.ParseFloat(r.Value[1].(string), 64)
+		if err != nil {
+			return nil, err
+		}
+		data[r.Metric["handler"]] = &APIEntry{TotalTime: calls, Handler: r.Metric["handler"]}
+	}
+
+	callsMetrics, err := a.client.Query(fmt.Sprintf("sum(increase(mattermost_api_time_count[%s]) > 0) by (handler)", timeRange))
+	if err != nil {
+		return nil, err
+	}
+	for _, r := range callsMetrics.Data.Result {
+		entry := data[r.Metric["handler"]]
+		count, err := strconv.ParseFloat(r.Value[1].(string), 64)
+		if err != nil {
+			return nil, err
+		}
+		entry.Count = count
+	}
+	averageMetrics, err := a.client.Query(fmt.Sprintf("(sum(increase(mattermost_api_time_sum[%s])) by (handler) / sum(increase(mattermost_api_time_count[%s]) > 0) by (handler))", timeRange, timeRange))
+	if err != nil {
+		return nil, err
+	}
+	for _, r := range averageMetrics.Data.Result {
+		entry := data[r.Metric["handler"]]
 		average, err := strconv.ParseFloat(r.Value[1].(string), 64)
 		if err != nil {
 			return nil, err
