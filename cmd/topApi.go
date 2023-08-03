@@ -26,11 +26,16 @@ func init() {
 	rootCmd.AddCommand(topApiCmd)
 	topApiCmd.Flags().StringP("criteria", "c", "total-time", "Set the criteria to get the top API endpoints (total-time, average-time, count)")
 	topApiCmd.Flags().IntP("limit", "l", 20, "Set the top limit of the results")
+	topApiCmd.Flags().StringP("timerange", "t", "24h", "Time range to use for quering the data")
 }
 
 func topApiHandler(cmd *cobra.Command, args []string) {
-	a := app.New("http://localhost:9090")
-	data, err := a.GetAPIMetrics()
+	host, err := cmd.Flags().GetString("host")
+	if err != nil {
+		panic(err)
+	}
+	a := app.New(host)
+	timeRange, err := cmd.Flags().GetString("timerange")
 	if err != nil {
 		panic(err)
 	}
@@ -43,6 +48,10 @@ func topApiHandler(cmd *cobra.Command, args []string) {
 		panic(err)
 	}
 
+	data, err := a.GetAPIMetrics(timeRange)
+	if err != nil {
+		panic(err)
+	}
 	if criteria != "total-time" && criteria != "average-time" && criteria != "count" {
 		fmt.Println("Invalid criteria")
 		return

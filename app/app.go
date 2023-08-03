@@ -32,8 +32,7 @@ func New(endpoint string) *App {
 	}
 }
 
-func (a *App) GetDBMetrics() (map[string]*DBEntry, error) {
-	timeRange := "24h"
+func (a *App) GetDBMetrics(timeRange string) (map[string]*DBEntry, error) {
 	data := map[string]*DBEntry{}
 	totalTimeMetrics, err := a.client.Query(fmt.Sprintf("sum(increase(mattermost_db_store_time_sum[%s]) and increase(mattermost_db_store_time_count[%s]) > 0) by (method)", timeRange, timeRange))
 	if err != nil {
@@ -74,8 +73,7 @@ func (a *App) GetDBMetrics() (map[string]*DBEntry, error) {
 	return data, nil
 }
 
-func (a *App) GetAPIMetrics() (map[string]*APIEntry, error) {
-	timeRange := "24h"
+func (a *App) GetAPIMetrics(timeRange string) (map[string]*APIEntry, error) {
 	data := map[string]*APIEntry{}
 	totalTimeMetrics, err := a.client.Query(fmt.Sprintf("sum(increase(mattermost_api_time_sum[%s]) and increase(mattermost_api_time_count[%s]) > 0) by (handler)", timeRange, timeRange))
 	if err != nil {

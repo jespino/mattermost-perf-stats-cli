@@ -26,11 +26,16 @@ func init() {
 	rootCmd.AddCommand(topDbCmd)
 	topDbCmd.Flags().StringP("criteria", "c", "total-time", "Set the criteria to get the top DB methods (total-time, average-time, count)")
 	topDbCmd.Flags().IntP("limit", "l", 20, "Set the top limit of the results")
+	topDbCmd.Flags().StringP("timerange", "t", "24h", "Time range to use for quering the data")
 }
 
 func topDbHandler(cmd *cobra.Command, args []string) {
-	a := app.New("http://localhost:9090")
-	data, err := a.GetDBMetrics()
+	host, err := cmd.Flags().GetString("host")
+	if err != nil {
+		panic(err)
+	}
+	a := app.New(host)
+	timeRange, err := cmd.Flags().GetString("timerange")
 	if err != nil {
 		panic(err)
 	}
@@ -39,6 +44,10 @@ func topDbHandler(cmd *cobra.Command, args []string) {
 		panic(err)
 	}
 	limit, err := cmd.Flags().GetInt("limit")
+	if err != nil {
+		panic(err)
+	}
+	data, err := a.GetDBMetrics(timeRange)
 	if err != nil {
 		panic(err)
 	}
